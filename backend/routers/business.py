@@ -22,30 +22,41 @@ def get_monthly_sales():
         )
 
 
+
 # 2. Revenue Comparison
 @router.get("/revenue-comparison")
 def compare_revenue(
     from_month: str = Query(
-        default="2026-09",
+        ...,
         pattern=r"^\d{4}-(0[1-9]|1[0-2])$"
     ),
     to_month: str = Query(
-        default="2026-10",
+        ...,
         pattern=r"^\d{4}-(0[1-9]|1[0-2])$"
     )
 ):
     try:
+        if from_month > to_month:
+            raise HTTPException(
+                status_code=400,
+                detail="from_month cannot be later than to_month"
+            )
+
         return business_service.get_revenue_comparison(
             from_month, to_month
         )
+
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error))
+
+    except HTTPException:
+        raise
+
     except Exception:
         raise HTTPException(
             status_code=500,
             detail="Unable to compare monthly revenue"
         )
-
 
 # 3. Payment Failure Analysis
 @router.get("/payment-failure-analysis")
