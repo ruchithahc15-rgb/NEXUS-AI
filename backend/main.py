@@ -1,14 +1,21 @@
-
 from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
 
 from database.config import engine
+from backend.routers.business import router as business_router
+from backend.routers.customers import router as customers_router
+
 
 app = FastAPI(
     title="NEXUS AI",
     description="Enterprise AI Operations & Decision Intelligence Platform",
     version="1.0.0"
 )
+
+
+# Register API routers
+app.include_router(business_router)
+app.include_router(customers_router)
 
 
 @app.get("/")
@@ -47,42 +54,4 @@ def database_health():
         raise HTTPException(
             status_code=503,
             detail="Database connection failed"
-        )
-
-
-@app.get("/api/v1/business/monthly-sales")
-def get_monthly_sales():
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(text("""
-                SELECT
-                    TO_CHAR(sale_date, 'YYYY-MM') AS month,
-                    COUNT(*) AS total_sales,
-                    SUM(revenue) AS total_revenue,
-                    ROUND(AVG(revenue), 2) AS average_order_value
-                FROM sales
-                GROUP BY TO_CHAR(sale_date, 'YYYY-MM')
-                ORDER BY month
-            """))
-
-            records = result.mappings().all()
-
-        return {
-            "status": "success",
-            "total_months": len(records),
-            "data": [
-                {
-                    "month": row["month"],
-                    "total_sales": row["total_sales"],
-                    "total_revenue": float(row["total_revenue"]),
-                    "average_order_value": float(row["average_order_value"])
-                }
-                for row in records
-            ]
-        }
-
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Unable to retrieve monthly sales data"
         )
